@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Router } from 'express';
+import { Request, Response, Router } from 'express';
 import multer from 'multer';
 import swaggerUi from 'swagger-ui-express';
 
@@ -947,5 +947,37 @@ routes.get('/unhealthy', HealthCheck.unhealthy);
 //Metrics Prometheus
 
 routes.get('/metrics', prometheusRegister.metrics);
+
+const router = Router();
+
+router.get('/', (_, res) => {
+  res.send({ status: 'Online' });
+});
+
+// ✅ Rota para enviar mensagem com a sessão conectada
+router.post('/api/send-message', async (req: Request, res: Response) => {
+  const { number, message } = req.body;
+
+  if (!number || !message) {
+    return res
+      .status(400)
+      .json({ error: 'Número e mensagem são obrigatórios' });
+  }
+
+  const client = req.client;
+
+  if (!client) {
+    return res.status(404).json({ error: 'Sessão não conectada' });
+  }
+
+  try {
+    const result = await client.sendText(number, message);
+    res.status(200).json({ success: true, result });
+  } catch (error: any) {
+    res
+      .status(500)
+      .json({ error: 'Erro ao enviar mensagem', details: error.message });
+  }
+});
 
 export default routes;
